@@ -93,7 +93,7 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
             )
             os.remove(mp3_file)
         else:
-            await query.message.reply_text("❌ Şarkı indirilemedi.")
+            await update.message.reply_text("❌ Şarkı indirilemedi.")
     except Exception as e:
         await query.message.reply_text(f"⚠️ İndirme hatası: {str(e)}")
 
@@ -135,28 +135,16 @@ def download_audio(url):
         
         return mp3_filename, title, uploader
 
-if __name__ == '__main__':
-    TOKEN = "8222625062:AAFHBf5VPh_kSdSgFO3iuXDA4dteyYFDWyA"  # Kendi bot token'ını buraya yazdığından emin ol
+def main():
+    TOKEN = "8222625062:AAFHBf5VPh_kSdSgFO3iuXDA4dteyYFDWyA"
     
     app = ApplicationBuilder().token(TOKEN).build()
-    
     app.add_handler(CommandHandler("start", start))
     app.add_handler(MessageHandler(filters.TEXT & (~filters.COMMAND), handle_message))
     app.add_handler(CallbackQueryHandler(button_callback))
     
-    print("Bot çalışıyor...")
-    
-    loop = asyncio.new_event_loop()
-    asyncio.set_event_loop(loop)
-    
-    async def main():
-        await app.initialize()
-        await app.start()
-        await app.updater.start_polling()
-        await asyncio.Event().wait()
+    print("Bot başlatıldı, mesajlar dinleniyor...")
+    app.run_polling()
 
-    try:
-        loop.run_until_complete(main())
-    except KeyboardInterrupt:
-        pass
-        
+if __name__ == "__main__":
+    main()
