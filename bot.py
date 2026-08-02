@@ -117,4 +117,3 @@ if __name__ == '__main__':
     
     print("Bot çalışıyor...")
     app.run_polling()
-  
