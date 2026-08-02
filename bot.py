@@ -9,7 +9,7 @@ import yt_dlp
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# Arama sonuçlarını geçici olarak saklamak için sözlük (user_id -> results)
+# Arama sonuçlarını geçici olarak saklamak için sözlük
 search_cache = {}
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -42,12 +42,10 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 await update.message.reply_text("❌ Hiçbir sonuç bulunamadı.")
                 return
 
-            # Sonuçları kullanıcıya özel önbelleğe kaydediyoruz
             search_cache[user_id] = results
 
             keyboard = []
             for index, item in enumerate(results):
-                # Buton verisini kısa tutarak Telegram sınırını aşıyoruz (örn: dl_0, dl_1)
                 keyboard.append([InlineKeyboardButton(item['title'], callback_data=f"dl_{index}")])
             
             reply_markup = InlineKeyboardMarkup(keyboard)
@@ -62,27 +60,35 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     data = query.data
     user_id = query.from_user.id
 
-    if data.startswith("dl_"):
-        try:
-            index = int(data.split("_")[1])
-            
-            # Önbellekten ilgili şarkının URL'sini alıyoruz
-            if user_id not in search_cache or index >= len(search_cache[user_id]):
-                await query.edit_message_text(text="❌ Zaman aşımı veya geçersiz seçim. Lütfen tekrar arama yapın.")
-                return
+    # Eski veya bozuk buton verilerine karşı koruma
+    if not data.startswith("dl_"):
+        await query.edit_message_text(text="❌ Bu menü geçerliliğini yitirmiş. Lütfen yeniden şarkı adı yazarak arama yapın.")
+        return
 
-            url = search_cache[user_id][index]['url']
+    try:
+        parts = data.split("_")
+        if len(parts) < 2:
+            await query.edit_message_text(text="❌ Geçersiz seçim. Lütfen tekrar arama yapın.")
+            return
             
-            await query.edit_message_text(text="⏳ Seçilen şarkı indiriliyor, gönderiliyor...")
-            
-            mp3_file = download_audio(url)
-            if mp3_file and os.path.exists(mp3_file):
-                await query.message.reply_audio(audio=open(mp3_file, 'rb'))
-                os.remove(mp3_file)
-            else:
-                await query.message.reply_text("❌ Şarkı indirilemedi.")
-        except Exception as e:
-            await query.message.reply_text(f"⚠️ İndirme hatası: {str(e)}")
+        index = int(parts[1])
+        
+        if user_id not in search_cache or index >= len(search_cache[user_id]):
+            await query.edit_message_text(text="❌ Zaman aşımı veya eski liste. Lütfen tekrar arama yapın.")
+            return
+
+        url = search_cache[user_id][index]['url']
+        
+        await query.edit_message_text(text="⏳ Seçilen şarkı indiriliyor, gönderiliyor...")
+        
+        mp3_file = download_audio(url)
+        if mp3_file and os.path.exists(mp3_file):
+            await query.message.reply_audio(audio=open(mp3_file, 'rb'))
+            os.remove(mp3_file)
+        else:
+            await query.message.reply_text("❌ Şarkı indirilemedi.")
+    except Exception as e:
+        await query.message.reply_text(f"⚠️ İndirme hatası: {str(e)}")
 
 def search_soundcloud(query, limit=5):
     ydl_opts = {
@@ -142,4 +148,4 @@ if __name__ == '__main__':
         loop.run_until_complete(main())
     except KeyboardInterrupt:
         pass
-    
+        
