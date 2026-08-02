@@ -26,9 +26,13 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if text.startswith("http://") or text.startswith("https://"):
         await update.message.reply_text("⏳ Link işleniyor, lütfen bekleyin...")
         try:
-            mp3_file = download_audio(text)
+            mp3_file, title, uploader = download_audio(text)
             if mp3_file and os.path.exists(mp3_file):
-                await update.message.reply_audio(audio=open(mp3_file, 'rb'))
+                await update.message.reply_audio(
+                    audio=open(mp3_file, 'rb'),
+                    title=title,
+                    performer=uploader
+                )
                 os.remove(mp3_file)
             else:
                 await update.message.reply_text("❌ Şarkı indirilemedi.")
@@ -60,7 +64,6 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     data = query.data
     user_id = query.from_user.id
 
-    # Eski veya bozuk buton verilerine karşı koruma
     if not data.startswith("dl_"):
         await query.edit_message_text(text="❌ Bu menü geçerliliğini yitirmiş. Lütfen yeniden şarkı adı yazarak arama yapın.")
         return
@@ -81,9 +84,13 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         
         await query.edit_message_text(text="⏳ Seçilen şarkı indiriliyor, gönderiliyor...")
         
-        mp3_file = download_audio(url)
+        mp3_file, title, uploader = download_audio(url)
         if mp3_file and os.path.exists(mp3_file):
-            await query.message.reply_audio(audio=open(mp3_file, 'rb'))
+            await query.message.reply_audio(
+                audio=open(mp3_file, 'rb'),
+                title=title,
+                performer=uploader
+            )
             os.remove(mp3_file)
         else:
             await query.message.reply_text("❌ Şarkı indirilemedi.")
@@ -122,7 +129,11 @@ def download_audio(url):
         filename = ydl.prepare_filename(info)
         base, ext = os.path.splitext(filename)
         mp3_filename = base + ".mp3"
-        return mp3_filename
+        
+        title = info.get('title', 'Bilinmeyen Şarkı')
+        uploader = info.get('uploader', 'Bilinmeyen Sanatçı')
+        
+        return mp3_filename, title, uploader
 
 if __name__ == '__main__':
     TOKEN = "8222625062:AAHBtlhXR-5VhUGDksLm4j475Y4ulB2ftzY"  # Kendi bot token'ını buraya yazdığından emin ol
