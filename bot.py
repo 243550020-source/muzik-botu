@@ -9,6 +9,9 @@ import yt_dlp
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+# Arama sonuçlarını geçici olarak saklamak için sözlük (user_id -> results)
+search_cache = {}
+
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(
         "🎵 **@OnsraMusicBot Müzik Botuna Hoş Geldiniz!**\n\n"
@@ -18,6 +21,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     text = update.message.text.strip()
+    user_id = update.message.from_user.id
 
     if text.startswith("http://") or text.startswith("https://"):
         await update.message.reply_text("⏳ Link işleniyor, lütfen bekleyin...")
@@ -33,15 +37,18 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     else:
         await update.message.reply_text("🔍 SoundCloud üzerinde aranıyor...")
         try:
-            # SoundCloud üzerinden arama yapıyoruz
             results = search_soundcloud(text, limit=5)
             if not results:
-                await update.message.reply_text("❌ Hiçbir sonuç bulunamadى.")
+                await update.message.reply_text("❌ Hiçbir sonuç bulunamadı.")
                 return
 
+            # Sonuçları kullanıcıya özel önbelleğe kaydediyoruz
+            search_cache[user_id] = results
+
             keyboard = []
-            for item in results:
-                keyboard.append([InlineKeyboardButton(item['title'], callback_data=f"dl_{item['id']}")])
+            for index, item in enumerate(results):
+                # Buton verisini kısa tutarak Telegram sınırını aşıyoruz (örn: dl_0, dl_1)
+                keyboard.append([InlineKeyboardButton(item['title'], callback_data=f"dl_{index}")])
             
             reply_markup = InlineKeyboardMarkup(keyboard)
             await update.message.reply_text("🎧 İndirmek istediğiniz şarkıyı seçin:", reply_markup=reply_markup)
@@ -53,17 +60,21 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await query.answer()
     
     data = query.data
+    user_id = query.from_user.id
+
     if data.startswith("dl_"):
-        video_id = data.split("_", 1)[1]  # SoundCloud URL veya ID'sini alıyoruz
-        
-        # Eğer id bir URL ise doğrudan kullan, değilse SoundCloud arama formatına çevir
-        if video_id.startswith("http"):
-            url = video_id
-        else:
-            url = f"https://soundcloud.com/{video_id}"
-        
-        await query.edit_message_text(text="⏳ Seçilen şarkı indiriliyor, gönderiliyor...")
         try:
+            index = int(data.split("_")[1])
+            
+            # Önbellekten ilgili şarkının URL'sini alıyoruz
+            if user_id not in search_cache or index >= len(search_cache[user_id]):
+                await query.edit_message_text(text="❌ Zaman aşımı veya geçersiz seçim. Lütfen tekrar arama yapın.")
+                return
+
+            url = search_cache[user_id][index]['url']
+            
+            await query.edit_message_text(text="⏳ Seçilen şarkı indiriliyor, gönderiliyor...")
+            
             mp3_file = download_audio(url)
             if mp3_file and os.path.exists(mp3_file):
                 await query.message.reply_audio(audio=open(mp3_file, 'rb'))
@@ -79,14 +90,12 @@ def search_soundcloud(query, limit=5):
         'quiet': True,
     }
     with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-        # yt-dlp ile soundcloud araması (scsearch)
         info = ydl.extract_info(f"scsearch{limit}:{query}", download=False)
         results = []
         if 'entries' in info:
             for entry in info['entries']:
-                # SoundCloud için url'yi id alanına kaydediyoruz
                 results.append({
-                    'id': entry.get('url'),
+                    'url': entry.get('url'),
                     'title': entry.get('title')
                 })
         return results
@@ -133,4 +142,4 @@ if __name__ == '__main__':
         loop.run_until_complete(main())
     except KeyboardInterrupt:
         pass
-        
+    
