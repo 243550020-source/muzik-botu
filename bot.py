@@ -103,6 +103,8 @@ def download_audio(url):
         mp3_filename = base + ".mp3"
         return mp3_filename
 
+import asyncio
+
 if __name__ == '__main__':
     TOKEN = "8222625062:AAH-GZ2GCLNcQE0YS_fAQekyBgDuiGxv0p8"
     
@@ -113,4 +115,19 @@ if __name__ == '__main__':
     app.add_handler(CallbackQueryHandler(button_callback))
     
     print("Bot çalışıyor...")
-    app.run_polling()
+    
+    # Python 3.14 uyumlu manuel event loop başlatıcı
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
+    
+    async def main():
+        await app.initialize()
+        await app.start()
+        await app.updater.start_polling()
+        # Botun kapanmaması için sonsuz döngü
+        await asyncio.Event().wait()
+
+    try:
+        loop.run_until_complete(main())
+    except KeyboardInterrupt:
+        pass
