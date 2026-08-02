@@ -1,0 +1,31 @@
+name: Telegram Music Bot
+
+on:
+  push:
+  workflow_dispatch:
+  schedule:
+    - cron: '*/30 * * * *' # Her 30 dakikada bir tetiklenir
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Repo Kopyala
+      uses: actions/checkout@v4
+
+    - name: Python Kurulumu
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.10'
+
+    - name: FFmpeg ve Kütüphaneleri Yükle
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y ffmpeg
+        pip install --upgrade pip
+        pip install -r requirements.txt
+
+    - name: Botu Başlat
+      run: python app.py
+      
