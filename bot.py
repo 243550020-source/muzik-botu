@@ -105,6 +105,8 @@ def download_audio(url):
         mp3_filename = base + ".mp3"
         return mp3_filename
 
+import asyncio
+
 if __name__ == '__main__':
     # Buraya BotFather'dan aldığın token'ı yazacaksın
     TOKEN = "8222625062:AAH-GZ2GCLNcQE0YS_fAQekyBgDuiGxv0p8"
@@ -116,4 +118,14 @@ if __name__ == '__main__':
     app.add_handler(CallbackQueryHandler(button_callback))
     
     print("Bot çalışıyor...")
-    app.run_polling()
+    
+    # Render üzerinde hatasız çalışması için asenkron başlatma yöneticisi
+    async def main():
+        await app.initialize()
+        await app.start()
+        await app.updater.start_polling()
+        # Botun kapanmasını önlemek için sonsuz döngü
+        stop_event = asyncio.Event()
+        await stop_event.wait()
+
+    asyncio.run(main())
