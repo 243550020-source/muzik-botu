@@ -136,7 +136,7 @@ def download_audio(url):
         return mp3_filename, title, uploader
 
 if __name__ == '__main__':
-    TOKEN = "8222625062:AAHBtlhXR-5VhUGDksLm4j475Y4ulB2ftzY"  # Kendi bot token'ını buraya yazdığından emin ol
+    TOKEN = "8222625062:AAFHBf5VPh_kSdSgFO3iuXDA4dteyYFDWyA"  # Kendi bot token'ını buraya yazdığından emin ol
     
     app = ApplicationBuilder().token(TOKEN).build()
     
