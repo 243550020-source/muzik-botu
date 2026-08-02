@@ -92,6 +92,9 @@ def download_audio(url):
         }],
         'outtmpl': '%(id)s.%(ext)s',
         'quiet': True,
+        'http_headers': {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        }
     }
     with yt_dlp.YoutubeDL(ydl_opts) as ydl:
         info = ydl.extract_info(url, download=True)
@@ -99,6 +102,7 @@ def download_audio(url):
         base, ext = os.path.splitext(filename)
         mp3_filename = base + ".mp3"
         return mp3_filename
+
 
 if __name__ == '__main__':
     TOKEN = "8222625062:AAH-GZ2GCLNcQE0YS_fAQekyBgDuiGxv0p8"
